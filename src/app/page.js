@@ -1,113 +1,194 @@
+'use client';
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { CloudSun, MapPin, MapPinned, Search } from "lucide-react";
+import Loading from "@/components/loader/loading.js";
+import CloudLoading from "@/components/loader/cloudLoading";
+import SearchComponente from "@/components/search";
+// import response from "@/components/data";
 
 export default function Home() {
+  const [weatherData, setWeatherData] = useState();
+  const [renderKey, setRenderKey] = useState();
+  const [searchLocationName, setSearchLocationName] = useState('');
+  const [loadingStatus, setLoadingStatus] = useState(false);
+
+  const [FindindLocaton, setFindindLocaton] = useState(true);
+  const [SearchVisibility, setSearchVisibility] = useState(false);
+
+  let fetchData = async (location) => {
+    setLoadingStatus(true);
+    console.log("fetching weather data - form loacaton : ", location)
+    let res = await fetch(`http://api.weatherapi.com/v1/forecast.json?key=c7b51b35b10049a088f75656241206&q=${location}&days=7`);
+    let response = await res.json();
+    // console.log(response);
+    if (response.error) {
+      alert(response.error.message)
+    } else {
+      setWeatherData(response);
+    }
+    setLoadingStatus(false);
+
+  }
+
+
+  useEffect(() => {
+    setRenderKey(Math.random() * 1000)
+  }, [weatherData]);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      console.log("Getting location....")
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const location = `${lat},${lon}`
+        console.log('Location found!');
+        console.log(`Lat ${lat} Lon ${lon}`)
+        fetchData(location);
+        setFindindLocaton(false);
+      }, (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            console.log('User denied the request for Geolocation.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            console.log('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            console.log('The request to get user location timed out.')
+            break;
+          case error.UNKNOWN_ERROR:
+            console.log('An unknown error occurred.')
+            break;
+        }
+        setFindindLocaton(false);
+
+      });
+    } else {
+      console.log('Geolocation is not supported by this browser.');
+    }
+  }, []);
+
+  let SearchBoxVisibility = () => {
+    SearchVisibility === false ? setSearchVisibility(true) : setSearchVisibility(false);
+  }
+
+  let SearchLocation = (e) => {
+    e.preventDefault();
+    if (searchLocationName != '') {
+      fetchData(searchLocationName);
+      setSearchLocationName('')
+      SearchBoxVisibility();
+    }
+  }
+
+  let onSearchChange = (e) => {
+    if (e.target.name == "search") {
+      setSearchLocationName(e.target.value);
+      console.log(e.target.value)
+    }
+  }
+
+
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <main key={renderKey} className="w-full md:w-[90vw] md:mt-7 bg-transparent backdrop-blur-lg  shadow-lg rounded-lg p-5 md:p-14">
+      {FindindLocaton === true && <Loading />}
+
+      {loadingStatus == true && <CloudLoading />}
+
+      {FindindLocaton === false && loadingStatus == false && weatherData == undefined && <SearchComponente SearchLocation={SearchLocation} onSearchChange={onSearchChange} />}
+
+      {FindindLocaton === false && loadingStatus == false && weatherData != undefined && <div className="w-full bg-transparent">
+        <section className="mb-5 flex flex-row justify-between items-center">
+          <div className={`text-white ${SearchVisibility == true ? 'hidden md:block' : 'block'}`}>
+            <span className="text-xl flex flex-row items-center gap-1"><MapPin /> <h2 className="text-xl md:text-3xl">{weatherData ? weatherData.location.name : '--'}</h2></span>
+          </div>
+
+          <form onSubmit={SearchLocation} className={`${SearchVisibility == true ? 'flex' : 'hidden md:flex'} flex-row items-center text-white border rounded-md px-3 py-2 gap-2 text-[15px] w-full md:w-[304px] md:text-[16px] md:hover:border-purple-600 `}>
+            <MapPinned />
+            <input onChange={onSearchChange} id="search" name="search" type="text" className="bg-transparent outline-none w-full md:w-[216px]" placeholder="Enter the location"></input>
+            <button type="submit"><Search className="cursor-pointer transition-colors duration-150 hover:text-blue-300" /></button>
+          </form>
+          <Search onClick={SearchBoxVisibility} className={`cursor-pointer text-white mx-3 my-2 ${SearchVisibility == true ? 'hidden' : 'flex md:hidden'}`} />
+        </section>
+
+        <div className="flex flex-col md:flex-row md:justify-between">
+          <div className="md:hidden w-full flex flex-col items-center text-white mb-10">
+
+            <Image src={`https:${weatherData.current.condition.icon}`} width={100} height={100} alt="img" />
+            <h2 className="text-2xl">{weatherData.current.condition.text}</h2>
+            <p className="text-slate-200">{weatherData.current.last_updated}</p>
+          </div>
+
+          <div className="flex flex-row gap-3">
+            <div className="flex flex-row text-white">
+              <h1 className="font-normal text-4xl md:text-8xl">{weatherData ? weatherData.current.temp_c : '--'}</h1>
+              <h3 className="md:text-xl">°C</h3>
+            </div>
+            <div className="text-gray-300">
+              <p>Precipitation {weatherData ? weatherData.current.precip_mm : '--'} mm</p>
+              <p>Humidity {weatherData ? weatherData.current.humidity : '--'}</p>
+              <p>Wind {weatherData ? weatherData.current.wind_kph : '--'} kph</p>
+            </div>
+          </div>
+
+          <div className="text-gray-300 hidden md:flex flex-col items-end">
+            <h1 className="text-3xl text-white">Weather</h1>
+            <p>{weatherData ? weatherData.current.last_updated : '--'}</p>
+            <p>{weatherData ? weatherData.current.condition.text : '--'}</p>
+          </div>
         </div>
-      </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+        <section className="mt-5 mb-7">
+          <h2 className="text-white mb-3">Hourly Weather report</h2>
+          <div className="flex flex-row overflow-auto no-scrollbar">
+            {weatherData ? weatherData.forecast.forecastday[0].hour.map((e) => {
+              return <div key={e.time_epoch} className="text-slate-300 flex flex-col items-center w-fit p-3 md:p-5 rounded-md hover:shadow-md hover:cursor-pointer transform transition-transform duration-300 hover:translate-y-1 hover:backdrop:blur-3xl">
+                <p>{e.time.slice(11, 15)}</p>
+                <Image src={`https:${e.condition.icon}`} width={50} height={50} alt="img" />
+                <p>{e.condition.text}</p>
+                <p>{e.temp_c}°C</p>
+              </div>
+            }) : '--'}
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+          </div>
+        </section>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+        <section>
+          <h2 className="text-white text-lg md:text-xl">7-Day Weather Reaport</h2>
+          <table >
+            <tbody className="text-sm">
+              {weatherData ? weatherData.forecast.forecastday.map((e) => {
+                let DATE = e.date.split('-');
+                const dayMap = {
+                  "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
+                  "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
+                  "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"
+                };
+                const month = dayMap[DATE[1]] || '-';
+                return <tr key={e.date_epoch} className=" text-slate-200 border-b border-neutral-200 dark:border-white/10 hover:backdrop-blur-3xl hover:cursor-pointer transform transition-transform duration-300 md:hover:translate-x-2 hover:text-white">
+                  <td className="px-3 py-2 md:px-6 md:py-4">{DATE[2]} {month}</td>
+                  <td className="px-3 py-2 md:px-6 md:py-4 hidden md:block">sat</td>
+                  <td className="px-3 py-2 md:px-6 md:py-4"><Image src={`https:${e.day.condition.icon}`} width={40} height={40} alt="img" /></td>
+                  <td className="px-3 py-2 md:px-6 md:py-4">{e.day.condition.text}</td>
+                  <td className="px-3 py-2 md:px-6 md:py-4">{e.day.mintemp_c}/{e.day.maxtemp_c}°C</td>
+                </tr>
+              }) : <tr>
+                <td>--</td>
+              </tr>}
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+
+            </tbody>
+
+          </table>
+
+        </section>
+      </div>}
+
     </main>
   );
 }
