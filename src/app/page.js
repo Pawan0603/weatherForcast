@@ -19,7 +19,7 @@ export default function Home() {
   let fetchData = async (location) => {
     setLoadingStatus(true);
     console.log("fetching weather data - form loacaton : ", location)
-    let res = await fetch(`http://api.weatherapi.com/v1/forecast.json?key=c7b51b35b10049a088f75656241206&q=${location}&days=7`);
+    let res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=c7b51b35b10049a088f75656241206&q=${location}&days=7`);
     let response = await res.json();
     // console.log(response);
     if (response.error) {
