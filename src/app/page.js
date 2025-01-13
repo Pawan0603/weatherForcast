@@ -1,7 +1,7 @@
 'use client';
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { CloudSun, MapPin, MapPinned, Search } from "lucide-react";
+import { AlignVerticalJustifyEnd, CloudSun, MapPin, MapPinned, Moon, Search, Sunrise, Sunset } from "lucide-react";
 import Loading from "@/components/loader/loading.js";
 import CloudLoading from "@/components/loader/cloudLoading";
 import SearchComponente from "@/components/search";
@@ -9,9 +9,11 @@ import SearchComponente from "@/components/search";
 
 export default function Home() {
   const [weatherData, setWeatherData] = useState();
+  const [showingDayData, setShowingDayData] = useState();
   const [renderKey, setRenderKey] = useState();
   const [searchLocationName, setSearchLocationName] = useState('');
   const [loadingStatus, setLoadingStatus] = useState(false);
+  const [dayIndexNo, setDayIndexNo] = useState(0);
 
   const [FindindLocaton, setFindindLocaton] = useState(true);
   const [SearchVisibility, setSearchVisibility] = useState(false);
@@ -21,11 +23,13 @@ export default function Home() {
     console.log("fetching weather data - form loacaton : ", location)
     let res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=c7b51b35b10049a088f75656241206&q=${location}&days=7`);
     let response = await res.json();
-    // console.log(response);
+    console.log(response.forecast.forecastday[0]);
+    console.log(response);
     if (response.error) {
       alert(response.error.message)
     } else {
       setWeatherData(response);
+      setShowingDayData(response.forecast.forecastday[0])
     }
     setLoadingStatus(false);
 
@@ -145,7 +149,7 @@ export default function Home() {
         <section className="mt-5 mb-7">
           <h2 className="text-white mb-3">Hourly Weather report</h2>
           <div className="flex flex-row overflow-auto no-scrollbar">
-            {weatherData ? weatherData.forecast.forecastday[0].hour.map((e) => {
+            {weatherData ? weatherData.forecast.forecastday[dayIndexNo].hour.map((e) => {
               return <div key={e.time_epoch} className="text-slate-300 flex flex-col items-center w-fit p-3 md:p-5 rounded-md hover:shadow-md hover:cursor-pointer transform transition-transform duration-300 hover:translate-y-1 hover:backdrop:blur-3xl">
                 <p>{e.time.slice(11, 15)}</p>
                 <Image src={`https:${e.condition.icon}`} width={50} height={50} alt="img" />
@@ -158,34 +162,48 @@ export default function Home() {
           </div>
         </section>
 
-        <section>
-          <h2 className="text-white text-lg md:text-xl">7-Day Weather Reaport</h2>
-          <table >
-            <tbody className="text-sm">
-              {weatherData ? weatherData.forecast.forecastday.map((e) => {
-                let DATE = e.date.split('-');
-                const dayMap = {
-                  "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
-                  "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
-                  "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"
-                };
-                const month = dayMap[DATE[1]] || '-';
-                return <tr key={e.date_epoch} className=" text-slate-200 border-b border-neutral-200 dark:border-white/10 hover:backdrop-blur-3xl hover:cursor-pointer transform transition-transform duration-300 md:hover:translate-x-2 hover:text-white">
-                  <td className="px-3 py-2 md:px-6 md:py-4">{DATE[2]} {month}</td>
-                  <td className="px-3 py-2 md:px-6 md:py-4 hidden md:block">sat</td>
-                  <td className="px-3 py-2 md:px-6 md:py-4"><Image src={`https:${e.day.condition.icon}`} width={40} height={40} alt="img" /></td>
-                  <td className="px-3 py-2 md:px-6 md:py-4">{e.day.condition.text}</td>
-                  <td className="px-3 py-2 md:px-6 md:py-4">{e.day.mintemp_c}/{e.day.maxtemp_c}°C</td>
-                </tr>
-              }) : <tr>
-                <td>--</td>
-              </tr>}
+        <section className="flex flex-col md:flex-row gap-5">
+          <section>
+            <h2 className="text-white text-lg md:text-xl">7-Day Weather Reaport</h2>
+            <table >
+              <tbody className="text-sm">
+                {weatherData ? weatherData.forecast.forecastday.map((e, index) => {
+                  let DATE = e.date.split('-');
+                  const dayMap = {
+                    "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
+                    "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
+                    "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"
+                  };
+                  const month = dayMap[DATE[1]] || '-';
+                  return <tr key={e.date_epoch} onClick={() => { setDayIndexNo(index) }} className=" text-slate-200 border-b border-neutral-200 dark:border-white/10 hover:backdrop-blur-3xl hover:cursor-pointer transform transition-transform duration-300 md:hover:translate-x-2 hover:text-white">
+                    <td className="px-3 py-2 md:px-6 md:py-4">{DATE[2]} {month}</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 hidden md:block">sat</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4"><Image src={`https:${e.day.condition.icon}`} width={40} height={40} alt="img" /></td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">{e.day.condition.text}</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">{e.day.mintemp_c}/{e.day.maxtemp_c}°C</td>
+                  </tr>
+                }) : <tr>
+                  <td>--</td>
+                </tr>}
 
 
-            </tbody>
+              </tbody>
 
-          </table>
+            </table>
 
+          </section>
+
+          <section className="text-white ">
+            <h1 className="text-lg md:text-xl">Astro</h1>
+            <div className="text-gray-300 space-y-2 mt-3 ml-3">
+              <p className="flex gap-2 items-center"><Sunrise color="#f58300" /> Sunrise {weatherData ? weatherData.forecast.forecastday[dayIndexNo].astro.sunrise : '--'}</p>
+              <p className="flex gap-2 items-center"><Sunset color="#f58300" /> Sunset {weatherData ? weatherData.forecast.forecastday[dayIndexNo].astro.sunset : '--'}</p>
+              <p className="flex gap-2 items-center"><Moon /> Moonrise {weatherData ? weatherData.forecast.forecastday[dayIndexNo].astro.moonrise : '--'}</p>
+              <p className="flex gap-2 items-center"><Moon /> Moonset {weatherData ? weatherData.forecast.forecastday[dayIndexNo].astro.moonset : '--'}</p>
+              <p className="flex gap-2 items-center">Moonphase : {weatherData ? weatherData.forecast.forecastday[dayIndexNo].astro.moon_phase : '--'}</p>
+              <p className="flex gap-2 items-center">Moonillumination : {weatherData ? weatherData.forecast.forecastday[dayIndexNo].astro.moon_illumination : '--'}</p>
+            </div>
+          </section>
         </section>
       </div>}
 
